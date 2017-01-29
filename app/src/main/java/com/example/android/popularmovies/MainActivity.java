@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.content.res.Configuration;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Parcelable;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -20,15 +21,20 @@ import com.example.android.popularmovies.util.MoviesParser;
 import com.example.android.popularmovies.util.NetworkUtils;
 
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements MovieAdapter.MovieAdapterOnClickHandler {
+
+    private static final String MOVIES_LOADED = "moviesLoaded";
 
     private RecyclerView recyclerView;
     private TextView errorMessageDisplay;
     private ProgressBar loadingIndicator;
 
     private MovieAdapter movieAdapter;
+
+    List<Movie> moviesLoaded = new ArrayList<>();
 
 
     @Override
@@ -52,10 +58,20 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
         recyclerView.setLayoutManager(gridLayoutManager);
         recyclerView.setHasFixedSize(true);
 
-        movieAdapter = new MovieAdapter(this);
+        if (savedInstanceState != null && savedInstanceState.containsKey(MOVIES_LOADED)) {
+            moviesLoaded = savedInstanceState.getParcelableArrayList(MOVIES_LOADED);
+        }
+
+        movieAdapter = new MovieAdapter(this, moviesLoaded);
         recyclerView.setAdapter(movieAdapter);
 
         loadMovies();
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        outState.putParcelableArrayList(MOVIES_LOADED, (ArrayList<? extends Parcelable>) moviesLoaded);
+        super.onSaveInstanceState(outState);
     }
 
     @Override
@@ -73,11 +89,13 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
 
         if (id == R.id.action_popular) {
             movieAdapter.setMovies(null);
+            moviesLoaded = null;
             String endpoint = getResources().getString(R.string.movie_db_popular);
             loadMovies(endpoint);
             return true;
         } else if (id == R.id.action_rated) {
             movieAdapter.setMovies(null);
+            moviesLoaded = null;
             String endpoint = getResources().getString(R.string.movie_db_top_rated);
             loadMovies(endpoint);
             return true;
@@ -102,7 +120,10 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
     private void loadMovies(String endpoint) {
         showMoviesView();
         String url = getResources().getString(R.string.movie_db_base_url) + endpoint;
-        new FetchMoviesTask().execute(url);
+
+        if (moviesLoaded == null || moviesLoaded.size() == 0) {
+            new FetchMoviesTask().execute(url);
+        }
     }
 
     private void showMoviesView() {
@@ -158,6 +179,7 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
             if (movies != null) {
                 showMoviesView();
                 movieAdapter.setMovies(movies);
+                moviesLoaded = movies;
             } else {
                 showErrorMessage();
             }

@@ -2,8 +2,8 @@ package com.example.android.popularmovies;
 
 import android.content.Intent;
 import android.os.AsyncTask;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
@@ -16,11 +16,11 @@ import com.example.android.popularmovies.util.NetworkUtils;
 import com.squareup.picasso.Picasso;
 
 import java.net.URL;
-import java.util.List;
 
 public class MovieDetailActivity extends AppCompatActivity {
 
     public final static String EXTRA_MOVIE = "movieId";
+    private static final String MOVIE_LOADED = "movieLoaded";
 
     private TextView errorMessageDisplay;
     private ProgressBar loadingIndicator;
@@ -49,13 +49,24 @@ public class MovieDetailActivity extends AppCompatActivity {
         voteAverage = (TextView) findViewById(R.id.vote_average);
         overview = (TextView) findViewById(R.id.overview);
 
-        Intent intent = getIntent();
+        if (savedInstanceState != null && savedInstanceState.containsKey(MOVIE_LOADED)) {
+            movie = savedInstanceState.getParcelable(MOVIE_LOADED);
+            showMovieView();
+            loadMovieInViews();
+        } else {
+            Intent intent = getIntent();
 
-        if (intent.hasExtra(EXTRA_MOVIE)) {
-            Integer movieId = (Integer) intent.getSerializableExtra(EXTRA_MOVIE);
-            loadMovie(movieId);
+            if (intent.hasExtra(EXTRA_MOVIE)) {
+                Integer movieId = (Integer) intent.getSerializableExtra(EXTRA_MOVIE);
+                loadMovie(movieId);
+            }
         }
+    }
 
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        outState.putParcelable(MOVIE_LOADED, movie);
+        super.onSaveInstanceState(outState);
     }
 
     private void loadMovieInViews () {
