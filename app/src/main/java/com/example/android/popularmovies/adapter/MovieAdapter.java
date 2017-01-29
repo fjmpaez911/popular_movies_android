@@ -18,6 +18,7 @@ import java.util.List;
 
 public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieAdapterViewHolder> {
 
+    private static final int MAX_TITLE = 35;
     private static final String TAG = MovieAdapter.class.getSimpleName();
 
     private List<Movie> movies;
@@ -71,7 +72,14 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieAdapter
         String posterUrl = context.getResources().getString(R.string.movie_db_base_url_poster) + posterPath;
 
         Picasso.with(context).load(posterUrl).into(movieAdapterViewHolder.movieImageView);
-        movieAdapterViewHolder.movieTextView.setText(movies.get(position).getOriginalTitle());
+
+        String title = movies.get(position).getOriginalTitle();
+
+        if (title.length() > MAX_TITLE) {
+            title = title.substring(0, MAX_TITLE - 3) + "...";
+        }
+
+        movieAdapterViewHolder.movieTextView.setText(title);
 
         Log.v(TAG, "Getting items");
     }
