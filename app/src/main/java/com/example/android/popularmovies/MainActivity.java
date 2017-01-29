@@ -1,6 +1,7 @@
 package com.example.android.popularmovies;
 
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
@@ -39,7 +40,15 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
         errorMessageDisplay = (TextView) findViewById(R.id.tv_error_message_display);
         loadingIndicator = (ProgressBar) findViewById(R.id.pb_loading_indicator);
 
-        GridLayoutManager gridLayoutManager = new GridLayoutManager(this, 3);
+        GridLayoutManager gridLayoutManager;
+
+        if(getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT){
+            gridLayoutManager = new GridLayoutManager(this, 3);
+        }
+        else{
+            gridLayoutManager = new GridLayoutManager(this, 5);
+        }
+
         recyclerView.setLayoutManager(gridLayoutManager);
         recyclerView.setHasFixedSize(true);
 
