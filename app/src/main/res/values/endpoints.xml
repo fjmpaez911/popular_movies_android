@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="movie_db_base_url">https://api.themoviedb.org/3</string>
+    <string name="movie_db_base_url_poster">http://image.tmdb.org/t/p/w185</string>
+    <string name="movie_db_movie_detail">/movie/</string>
+    <string name="movie_db_popular">/movie/popular</string>
+    <string name="movie_db_top_rated">/movie/top_rated</string>
+
+</resources>
