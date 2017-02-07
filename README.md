@@ -5,7 +5,7 @@ Project Summary
 
 Most of us can relate to kicking back on the couch and enjoying a movie with friends and family. This project consist in to build an app to allow users to discover the most popular movies playing.
 
-In order to run this app you should to add a resource file with this content:
+In order to run this app you have to add a resource file with this content:
 
 
 
