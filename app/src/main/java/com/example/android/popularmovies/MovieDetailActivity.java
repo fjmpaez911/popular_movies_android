@@ -6,16 +6,22 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.ImageView;
+import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
+import com.example.android.popularmovies.adapter.ReviewAdapter;
+import com.example.android.popularmovies.adapter.TrailerAdapter;
 import com.example.android.popularmovies.model.Movie;
+import com.example.android.popularmovies.model.Review;
+import com.example.android.popularmovies.model.Trailer;
 import com.example.android.popularmovies.util.MoviesParser;
 import com.example.android.popularmovies.util.NetworkUtils;
 import com.squareup.picasso.Picasso;
 
 import java.net.URL;
+import java.util.List;
 
 public class MovieDetailActivity extends AppCompatActivity {
 
@@ -31,8 +37,13 @@ public class MovieDetailActivity extends AppCompatActivity {
     private TextView releaseDate;
     private TextView voteAverage;
     private TextView overview;
+    private ListView reviews;
+    private ListView trailers;
 
     private Movie movie;
+
+    private ReviewAdapter reviewAdapter;
+    private TrailerAdapter trailerAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,6 +59,8 @@ public class MovieDetailActivity extends AppCompatActivity {
         releaseDate = (TextView) findViewById(R.id.release_date);
         voteAverage = (TextView) findViewById(R.id.vote_average);
         overview = (TextView) findViewById(R.id.overview);
+        reviews = (ListView) findViewById(R.id.reviews);
+        trailers = (ListView) findViewById(R.id.trailers);
 
         if (savedInstanceState != null && savedInstanceState.containsKey(MOVIE_LOADED)) {
             movie = savedInstanceState.getParcelable(MOVIE_LOADED);
@@ -78,12 +91,27 @@ public class MovieDetailActivity extends AppCompatActivity {
         releaseDate.setText(movie.getRealeseDate());
         voteAverage.setText(movie.getVoteAverage());
         overview.setText(movie.getOverview());
+
+        reviewAdapter = new ReviewAdapter(this, movie.getReviews());
+        reviews.setAdapter(reviewAdapter);
+
+        trailerAdapter = new TrailerAdapter(this, movie.getTrailers());
+        trailers.setAdapter(trailerAdapter);
+
     }
 
     private void loadMovie(Integer movieId) {
         showMovieView();
-        String url = getResources().getString(R.string.movie_db_base_url) + getResources().getString(R.string.movie_db_movie_detail) + movieId;
-        new FetchMovieTask().execute(url);
+
+        String urlMovieDetails = getResources().getString(R.string.movie_db_base_url) + getResources().getString(R.string.movie_db_movie_detail) + movieId;
+
+        String endpointMovieReviews = getResources().getString(R.string.movie_db_movie_reviews).replace(getResources().getString(R.string.pattern_movie_id), movieId.toString());
+        String urlMovieReviews = getResources().getString(R.string.movie_db_base_url) + endpointMovieReviews;
+
+        String endpointMovieTrailers = getResources().getString(R.string.movie_db_movie_trailers).replace(getResources().getString(R.string.pattern_movie_id), movieId.toString());
+        String urlMovieTrailers = getResources().getString(R.string.movie_db_base_url) + endpointMovieTrailers;
+
+        new FetchMovieTask().execute(urlMovieDetails, urlMovieReviews, urlMovieTrailers);
     }
 
     private void showMovieView() {
@@ -115,15 +143,29 @@ public class MovieDetailActivity extends AppCompatActivity {
             String apiKeyParam = getResources().getString(R.string.movie_db_api_key_param);
             String apiKeyValue = getResources().getString(R.string.movie_db_api_key_value);
 
-            String url = params[0];
-            URL requestUrl = NetworkUtils.buildUrl(url, apiKeyParam, apiKeyValue);
+            String urlMovieDetails = params[0];
+            String urlMovieReviews = params[1];
+            String urlMovieTrailers = params[2];
+
+            URL requestUrlMovieDetails = NetworkUtils.buildUrl(urlMovieDetails, apiKeyParam, apiKeyValue);
+            URL requestUrlMovieReviews = NetworkUtils.buildUrl(urlMovieReviews, apiKeyParam, apiKeyValue);
+            URL requestUrlMovieTrailers = NetworkUtils.buildUrl(urlMovieTrailers, apiKeyParam, apiKeyValue);
 
             try {
-                String jsonResponse = NetworkUtils
-                        .getResponseFromHttpUrl(requestUrl);
-
+                String jsonResponse = NetworkUtils.getResponseFromHttpUrl(requestUrlMovieDetails);
                 Movie movie = MoviesParser
-                        .getMovieFromJson(MovieDetailActivity.this, jsonResponse);
+                        .getMovieFromJson(jsonResponse);
+
+                jsonResponse = NetworkUtils.getResponseFromHttpUrl(requestUrlMovieReviews);
+                List<Review> reviews = MoviesParser
+                        .getReviewsFromJson(jsonResponse);
+
+                jsonResponse = NetworkUtils.getResponseFromHttpUrl(requestUrlMovieTrailers);
+                List<Trailer> trailers = MoviesParser
+                        .getTrailersFromJson(jsonResponse);
+
+                movie.setReviews(reviews);
+                movie.setTrailers(trailers);
 
                 return movie;
 

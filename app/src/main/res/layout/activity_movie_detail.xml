@@ -62,6 +62,24 @@
                 android:textStyle="italic"
                 android:layout_below="@+id/vote_average" />
 
+            <ListView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:id="@+id/trailers"
+                android:padding="16dp"
+                android:textSize="26sp"
+                android:layout_below="@+id/overview">
+            </ListView>
+
+            <ListView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:id="@+id/reviews"
+                android:padding="16dp"
+                android:textSize="26sp"
+                android:layout_below="@+id/trailers">
+            </ListView>
+
         </RelativeLayout>
 
     </ScrollView>

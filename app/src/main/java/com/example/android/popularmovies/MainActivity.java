@@ -16,6 +16,8 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.example.android.popularmovies.adapter.MovieAdapter;
+import com.example.android.popularmovies.adapter.ReviewAdapter;
+import com.example.android.popularmovies.adapter.TrailerAdapter;
 import com.example.android.popularmovies.model.Movie;
 import com.example.android.popularmovies.util.MoviesParser;
 import com.example.android.popularmovies.util.NetworkUtils;
@@ -49,10 +51,10 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
         GridLayoutManager gridLayoutManager;
 
         if(getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT){
-            gridLayoutManager = new GridLayoutManager(this, 3);
+            gridLayoutManager = new GridLayoutManager(this, 2);
         }
         else{
-            gridLayoutManager = new GridLayoutManager(this, 5);
+            gridLayoutManager = new GridLayoutManager(this, 4);
         }
 
         recyclerView.setLayoutManager(gridLayoutManager);
@@ -66,6 +68,7 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
         recyclerView.setAdapter(movieAdapter);
 
         loadMovies();
+
     }
 
     @Override
@@ -162,7 +165,7 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
                         .getResponseFromHttpUrl(requestUrl);
 
                 List<Movie> movies = MoviesParser
-                        .getMoviesFromJson(MainActivity.this, jsonResponse);
+                        .getMoviesFromJson(jsonResponse);
 
                 return movies;
 

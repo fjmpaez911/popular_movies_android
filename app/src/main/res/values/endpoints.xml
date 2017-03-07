@@ -6,5 +6,9 @@
     <string name="movie_db_movie_detail">/movie/</string>
     <string name="movie_db_popular">/movie/popular</string>
     <string name="movie_db_top_rated">/movie/top_rated</string>
+    <string name="movie_db_movie_trailers">/movie/{movie_id}/videos</string>
+    <string name="movie_db_movie_reviews">/movie/{movie_id}/reviews</string>
+
+    <string name="pattern_movie_id">{movie_id}</string>
 
 </resources>
