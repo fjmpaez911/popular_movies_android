@@ -1,7 +1,10 @@
 package com.example.android.popularmovies.model;
 
 
-public class Review {
+import android.os.Parcel;
+import android.os.Parcelable;
+
+public class Review implements Parcelable {
 
     private String id;
     private String author;
@@ -16,6 +19,13 @@ public class Review {
         this.author = author;
         this.content = content;
         this.url = url;
+    }
+
+    public Review(Parcel in) {
+        this.id = in.readString();
+        this.author = in.readString();
+        this.content = in.readString();
+        this.url = in.readString();
     }
 
     public String getId() {
@@ -75,4 +85,30 @@ public class Review {
                 ", url='" + url + '\'' +
                 '}';
     }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeString(id);
+        dest.writeString(author);
+        dest.writeString(content);
+        dest.writeString(url);
+    }
+
+    public static final Parcelable.Creator<Review> CREATOR = new Parcelable.Creator<Review>() {
+
+        @Override
+        public Review createFromParcel(Parcel source) {
+            return new Review(source);
+        }
+
+        @Override
+        public Review[] newArray(int index) {
+            return new Review[index];
+        }
+    };
 }

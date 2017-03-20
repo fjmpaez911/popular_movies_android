@@ -1,6 +1,9 @@
 package com.example.android.popularmovies.model;
 
-public class Trailer {
+import android.os.Parcel;
+import android.os.Parcelable;
+
+public class Trailer implements Parcelable {
 
     private String id;
     private String iso_639_1;
@@ -23,6 +26,17 @@ public class Trailer {
         this.site = site;
         this.size = size;
         this.type = type;
+    }
+
+    public Trailer(Parcel in) {
+        this.id = in.readString();
+        this.iso_639_1 = in.readString();
+        this.iso_3166_1 = in.readString();
+        this.key = in.readString();
+        this.name = in.readString();
+        this.site = in.readString();
+        this.size = in.readInt();
+        this.type = in.readString();
     }
 
     public String getId() {
@@ -118,4 +132,34 @@ public class Trailer {
                 ", type='" + type + '\'' +
                 '}';
     }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeString(id);
+        dest.writeString(iso_639_1);
+        dest.writeString(iso_3166_1);
+        dest.writeString(key);
+        dest.writeString(name);
+        dest.writeString(site);
+        dest.writeInt(size);
+        dest.writeString(type);
+    }
+
+    public static final Parcelable.Creator<Trailer> CREATOR = new Parcelable.Creator<Trailer>() {
+
+        @Override
+        public Trailer createFromParcel(Parcel source) {
+            return new Trailer(source);
+        }
+
+        @Override
+        public Trailer[] newArray(int index) {
+            return new Trailer[index];
+        }
+    };
 }

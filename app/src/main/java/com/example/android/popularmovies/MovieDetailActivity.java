@@ -3,11 +3,15 @@ package com.example.android.popularmovies;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.ProgressBar;
+import android.widget.RelativeLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
@@ -21,6 +25,7 @@ import com.example.android.popularmovies.util.NetworkUtils;
 import com.squareup.picasso.Picasso;
 
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.List;
 
 public class MovieDetailActivity extends AppCompatActivity {
@@ -37,12 +42,11 @@ public class MovieDetailActivity extends AppCompatActivity {
     private TextView releaseDate;
     private TextView voteAverage;
     private TextView overview;
-    private ListView reviews;
+    private Button reviews;
     private ListView trailers;
 
     private Movie movie;
 
-    private ReviewAdapter reviewAdapter;
     private TrailerAdapter trailerAdapter;
 
     @Override
@@ -59,7 +63,7 @@ public class MovieDetailActivity extends AppCompatActivity {
         releaseDate = (TextView) findViewById(R.id.release_date);
         voteAverage = (TextView) findViewById(R.id.vote_average);
         overview = (TextView) findViewById(R.id.overview);
-        reviews = (ListView) findViewById(R.id.reviews);
+        reviews = (Button) findViewById(R.id.reviews);
         trailers = (ListView) findViewById(R.id.trailers);
 
         if (savedInstanceState != null && savedInstanceState.containsKey(MOVIE_LOADED)) {
@@ -82,6 +86,13 @@ public class MovieDetailActivity extends AppCompatActivity {
         super.onSaveInstanceState(outState);
     }
 
+    public void showReviews (View view) {
+        Intent intent = new Intent(this, ReviewsActivity.class);
+        intent.putParcelableArrayListExtra(ReviewsActivity.REVIEWS_LOADED, (ArrayList) movie.getReviews());
+
+        startActivity(intent);
+    }
+
     private void loadMovieInViews () {
         String posterPath = movie.getPosterPath();
         String posterUrl = getResources().getString(R.string.movie_db_base_url_poster) + posterPath;
@@ -92,8 +103,10 @@ public class MovieDetailActivity extends AppCompatActivity {
         voteAverage.setText(movie.getVoteAverage());
         overview.setText(movie.getOverview());
 
-        reviewAdapter = new ReviewAdapter(this, movie.getReviews());
-        reviews.setAdapter(reviewAdapter);
+        Integer numReviews = movie.getReviews().size();
+        String reviewsInfo = "View " + numReviews + " reviews...";
+        reviews.setText(reviewsInfo);
+        reviews.setEnabled(numReviews > 0 ? true : false);
 
         trailerAdapter = new TrailerAdapter(this, movie.getTrailers());
         trailers.setAdapter(trailerAdapter);

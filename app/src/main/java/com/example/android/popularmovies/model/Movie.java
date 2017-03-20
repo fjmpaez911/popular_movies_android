@@ -8,14 +8,14 @@ import java.util.List;
 
 public class Movie implements Parcelable {
 
-    Integer id;
-    String originalTitle;
-    String posterPath;
-    String overview;
-    String voteAverage;
-    String realeseDate;
-    List<Review> reviews;
-    List<Trailer> trailers;
+    private Integer id;
+    private String originalTitle;
+    private String posterPath;
+    private String overview;
+    private String voteAverage;
+    private String realeseDate;
+    private List<Review> reviews;
+    private List<Trailer> trailers;
 
     public Movie() {
     }
@@ -168,7 +168,7 @@ public class Movie implements Parcelable {
         dest.writeList(trailers);
     }
 
-    public final Parcelable.Creator<Movie> CREATOR = new Parcelable.Creator<Movie>() {
+    public static final Parcelable.Creator<Movie> CREATOR = new Parcelable.Creator<Movie>() {
 
         @Override
         public Movie createFromParcel(Parcel source) {

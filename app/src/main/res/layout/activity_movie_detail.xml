@@ -71,14 +71,16 @@
                 android:layout_below="@+id/overview">
             </ListView>
 
-            <ListView
-                android:layout_width="match_parent"
+            <Button
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:id="@+id/reviews"
                 android:padding="16dp"
                 android:textSize="26sp"
-                android:layout_below="@+id/trailers">
-            </ListView>
+                android:layout_below="@+id/trailers"
+                android:onClick="showReviews"
+                android:layout_centerHorizontal="true"
+                />
 
         </RelativeLayout>
 
