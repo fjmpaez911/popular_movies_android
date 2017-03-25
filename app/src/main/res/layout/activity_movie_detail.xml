@@ -62,22 +62,49 @@
                 android:textStyle="italic"
                 android:layout_below="@+id/vote_average" />
 
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:id="@+id/divider1"
+                android:padding="16dp"
+                android:background="@android:color/white"
+                android:layout_below="@+id/overview"/>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:id="@+id/trailers_label"
+                android:padding="16dp"
+                android:textColor="@color/colorVoteAverage"
+                android:textSize="26sp"
+                android:layout_below="@+id/divider1"
+                android:text="@string/trailers_label_text"/>
+
+
             <ListView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:id="@+id/trailers"
                 android:padding="16dp"
                 android:textSize="26sp"
-                android:layout_below="@+id/overview">
+                android:layout_below="@+id/trailers_label">
             </ListView>
 
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:id="@+id/divider2"
+                android:padding="16dp"
+                android:background="@android:color/white"
+                android:layout_below="@+id/trailers"/>
+
             <Button
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:id="@+id/reviews"
                 android:padding="16dp"
                 android:textSize="26sp"
-                android:layout_below="@+id/trailers"
+                android:layout_below="@+id/divider2"
                 android:onClick="showReviews"
                 android:layout_centerHorizontal="true"
                 />
