@@ -5,6 +5,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.example.android.popularmovies.R;
@@ -49,8 +50,10 @@ public class TrailerAdapter extends BaseAdapter {
 
         ViewHolder viewHolder = new ViewHolder();
         viewHolder.name = (TextView) row.findViewById(R.id.trailer_name);
+        viewHolder.image = (ImageView) row.findViewById(R.id.trailer_image);
 
         viewHolder.name.setText(trailers.get(position).getName());
+        viewHolder.image.setImageResource(R.drawable.trailer_icon);
 
         return row;
 
@@ -58,6 +61,7 @@ public class TrailerAdapter extends BaseAdapter {
 
     public static class ViewHolder {
         public TextView name;
+        public ImageView image;
     }
 
 }

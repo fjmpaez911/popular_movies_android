@@ -61,6 +61,10 @@
                 android:textSize="26sp"
                 android:textStyle="italic"
                 android:layout_below="@+id/vote_average" />
+            
+            <ExpandableListView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"></ExpandableListView>
 
             <View
                 android:layout_width="match_parent"
@@ -69,7 +73,7 @@
                 android:padding="16dp"
                 android:background="@android:color/white"
                 android:layout_below="@+id/overview"/>
-
+            
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -80,15 +84,16 @@
                 android:layout_below="@+id/divider1"
                 android:text="@string/trailers_label_text"/>
 
-
-            <ListView
+            <GridView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:id="@+id/trailers"
                 android:padding="16dp"
-                android:textSize="26sp"
-                android:layout_below="@+id/trailers_label">
-            </ListView>
+                android:columnWidth="100dp"
+                android:numColumns="auto_fit"
+                android:stretchMode="columnWidth"
+                android:gravity="center"
+                android:layout_below="@+id/trailers_label"/>
 
             <View
                 android:layout_width="match_parent"

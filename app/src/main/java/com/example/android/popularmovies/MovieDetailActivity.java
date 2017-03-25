@@ -1,21 +1,20 @@
 package com.example.android.popularmovies;
 
+import android.content.ActivityNotFoundException;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.Button;
+import android.widget.GridView;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
-import android.widget.ListView;
 import android.widget.ProgressBar;
-import android.widget.RelativeLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
-import com.example.android.popularmovies.adapter.ReviewAdapter;
 import com.example.android.popularmovies.adapter.TrailerAdapter;
 import com.example.android.popularmovies.model.Movie;
 import com.example.android.popularmovies.model.Review;
@@ -43,7 +42,7 @@ public class MovieDetailActivity extends AppCompatActivity {
     private TextView voteAverage;
     private TextView overview;
     private Button reviews;
-    private ListView trailers;
+    private GridView trailers;
 
     private Movie movie;
 
@@ -64,7 +63,7 @@ public class MovieDetailActivity extends AppCompatActivity {
         voteAverage = (TextView) findViewById(R.id.vote_average);
         overview = (TextView) findViewById(R.id.overview);
         reviews = (Button) findViewById(R.id.reviews);
-        trailers = (ListView) findViewById(R.id.trailers);
+        trailers = (GridView) findViewById(R.id.trailers);
 
         if (savedInstanceState != null && savedInstanceState.containsKey(MOVIE_LOADED)) {
             movie = savedInstanceState.getParcelable(MOVIE_LOADED);
@@ -110,6 +109,22 @@ public class MovieDetailActivity extends AppCompatActivity {
 
         trailerAdapter = new TrailerAdapter(this, movie.getTrailers());
         trailers.setAdapter(trailerAdapter);
+
+        trailers.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                String key = movie.getTrailers().get(position).getKey();
+
+                Intent appIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("vnd.youtube:" + key));
+                Intent webIntent = new Intent(Intent.ACTION_VIEW,
+                        Uri.parse("http://www.youtube.com/watch?v=" + key));
+                try {
+                    startActivity(appIntent);
+                } catch (ActivityNotFoundException ex) {
+                    startActivity(webIntent);
+                }
+            }
+        });
 
     }
 
