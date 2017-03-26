@@ -16,6 +16,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.example.android.popularmovies.adapter.MovieAdapter;
 import com.example.android.popularmovies.data.LocalCollectionMoviesContract;
@@ -144,9 +145,13 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
         if (moviesLoaded == null || moviesLoaded.size() == 0) {
             loadingIndicator.setVisibility(View.VISIBLE);
             List<Movie> movies = getFavoritesMovies();
-            loadMovies(movies);
+            if (movies.isEmpty()) {
+                loadingIndicator.setVisibility(View.INVISIBLE);
+                Toast.makeText(this, "The local collection is empty.", Toast.LENGTH_LONG).show();
+            } else {
+                loadMovies(movies);
+            }
         }
-
     }
 
     private void loadMovies() {

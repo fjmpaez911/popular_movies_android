@@ -17,6 +17,7 @@ import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.example.android.popularmovies.adapter.TrailerAdapter;
 import com.example.android.popularmovies.data.LocalCollectionMoviesContract;
@@ -341,6 +342,8 @@ public class MovieDetailActivity extends AppCompatActivity {
                 mDB.insert(LocalCollectionMoviesContract.LocalCollectionMoviesTrailersEntry.TABLE_NAME, null, cvTrailer);
             }
         }
+
+        Toast.makeText(this, "Movie saved in local collection!", Toast.LENGTH_LONG).show();
     }
 
     private Movie getFavoriteMovie(int movieId) {
