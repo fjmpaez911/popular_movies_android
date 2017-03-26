@@ -14,11 +14,31 @@
             android:layout_height="match_parent"
             android:padding="16dp">
 
-            <ImageView
+            <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
                 android:layout_width="match_parent"
-                android:layout_height="400dp"
-                android:id="@+id/iv_movie_detail"
-                android:padding="16dp"/>
+                android:layout_height="wrap_content"
+                android:id="@+id/poster_and_overview"
+                android:padding="16dp">
+
+                <ImageView
+                    android:layout_width="wrap_content"
+                    android:layout_height="500dp"
+                    android:id="@+id/iv_movie_detail"
+                    android:padding="16dp"
+                    android:layout_alignParentLeft="true"
+                    android:layout_toLeftOf="@+id/overview"/>
+
+                <TextView
+                    android:layout_width="400dp"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/overview"
+                    android:padding="16dp"
+                    android:textColor="@color/colorTextOverview"
+                    android:textSize="26sp"
+                    android:textStyle="italic"
+                    android:layout_alignParentRight="true" />
+
+            </RelativeLayout>
 
             <TextView
                 android:layout_width="match_parent"
@@ -29,7 +49,7 @@
                 android:textStyle="bold"
                 android:textSize="26sp"
                 android:textAlignment="center"
-                android:layout_below="@+id/iv_movie_detail"
+                android:layout_below="@+id/poster_and_overview"
                 android:layout_alignParentLeft="true"
                 android:layout_toLeftOf="@+id/favorite" />
 
@@ -39,7 +59,7 @@
                 android:id="@+id/favorite"
                 android:layout_margin="16dp"
                 android:onClick="markAsFavorite"
-                android:layout_below="@+id/iv_movie_detail"
+                android:layout_below="@+id/poster_and_overview"
                 android:layout_alignParentRight="true" />
 
             <TextView
@@ -63,15 +83,6 @@
                 android:layout_below="@+id/original_title"
                 android:layout_alignParentRight="true" />
 
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:id="@+id/overview"
-                android:padding="16dp"
-                android:textColor="@color/colorTextOverview"
-                android:textSize="26sp"
-                android:textStyle="italic"
-                android:layout_below="@+id/vote_average" />
 
             <View
                 android:layout_width="match_parent"
@@ -79,7 +90,7 @@
                 android:id="@+id/divider1"
                 android:padding="16dp"
                 android:background="@android:color/white"
-                android:layout_below="@+id/overview"/>
+                android:layout_below="@+id/vote_average"/>
             
             <TextView
                 android:layout_width="match_parent"

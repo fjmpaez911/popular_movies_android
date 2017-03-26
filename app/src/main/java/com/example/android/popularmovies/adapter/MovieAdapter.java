@@ -8,7 +8,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
-import android.widget.TextView;
 
 import com.example.android.popularmovies.R;
 import com.example.android.popularmovies.model.Movie;
@@ -18,7 +17,6 @@ import java.util.List;
 
 public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieAdapterViewHolder> {
 
-    private static final int MAX_TITLE = 35;
     private static final String TAG = MovieAdapter.class.getSimpleName();
 
     private List<Movie> movies;
@@ -37,12 +35,10 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieAdapter
     public class MovieAdapterViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
 
         public final ImageView movieImageView;
-        public final TextView movieTextView;
 
         public MovieAdapterViewHolder(View view) {
             super(view);
             movieImageView = (ImageView) view.findViewById(R.id.iv_grid_item);
-            movieTextView = (TextView) view.findViewById(R.id.tv_grid_item);
             view.setOnClickListener(this);
         }
 
@@ -73,14 +69,6 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieAdapter
         String posterUrl = context.getResources().getString(R.string.movie_db_base_url_poster) + posterPath;
 
         Picasso.with(context).load(posterUrl).into(movieAdapterViewHolder.movieImageView);
-
-        String title = movies.get(position).getOriginalTitle();
-
-        if (title.length() > MAX_TITLE) {
-            title = title.substring(0, MAX_TITLE - 3) + "...";
-        }
-
-        movieAdapterViewHolder.movieTextView.setText(title);
 
         Log.v(TAG, "Getting items");
     }
