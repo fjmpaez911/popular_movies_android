@@ -16,4 +16,11 @@
         android:id="@+id/action_rated"
         />
 
+    <item
+        android:title="@string/action_short_favorites"
+        android:orderInCategory="3"
+        app:showAsAction="ifRoom"
+        android:id="@+id/action_favorites"
+        />
+
 </menu>

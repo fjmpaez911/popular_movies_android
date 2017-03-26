@@ -1,7 +1,10 @@
 package com.example.android.popularmovies;
 
 import android.content.ActivityNotFoundException;
+import android.content.ContentValues;
 import android.content.Intent;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -16,6 +19,8 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 
 import com.example.android.popularmovies.adapter.TrailerAdapter;
+import com.example.android.popularmovies.data.LocalCollectionMoviesContract;
+import com.example.android.popularmovies.data.LocalCollectionMoviesDbHelper;
 import com.example.android.popularmovies.model.Movie;
 import com.example.android.popularmovies.model.Review;
 import com.example.android.popularmovies.model.Trailer;
@@ -30,6 +35,7 @@ import java.util.List;
 public class MovieDetailActivity extends AppCompatActivity {
 
     public final static String EXTRA_MOVIE = "movieId";
+    public final static String EXTRA_MOVIE_FAVORITE = "movieFavorite";
     private static final String MOVIE_LOADED = "movieLoaded";
 
     private TextView errorMessageDisplay;
@@ -43,15 +49,22 @@ public class MovieDetailActivity extends AppCompatActivity {
     private TextView overview;
     private Button reviews;
     private GridView trailers;
+    private ImageView favoriteStar;
 
     private Movie movie;
+    private boolean isInFavoriteCollection = false;
 
     private TrailerAdapter trailerAdapter;
+
+    private SQLiteDatabase mDB;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_movie_detail);
+
+        LocalCollectionMoviesDbHelper dbHelper = new LocalCollectionMoviesDbHelper(this);
+        mDB = dbHelper.getWritableDatabase();
 
         errorMessageDisplay = (TextView) findViewById(R.id.tv_error_message_display_movie);
         loadingIndicator = (ProgressBar) findViewById(R.id.pb_loading_indicator_movie);
@@ -64,9 +77,11 @@ public class MovieDetailActivity extends AppCompatActivity {
         overview = (TextView) findViewById(R.id.overview);
         reviews = (Button) findViewById(R.id.reviews);
         trailers = (GridView) findViewById(R.id.trailers);
+        favoriteStar = (ImageView) findViewById(R.id.favorite);
 
         if (savedInstanceState != null && savedInstanceState.containsKey(MOVIE_LOADED)) {
             movie = savedInstanceState.getParcelable(MOVIE_LOADED);
+            isInFavoriteCollection = savedInstanceState.getBoolean(EXTRA_MOVIE_FAVORITE);
             showMovieView();
             loadMovieInViews();
         } else {
@@ -74,14 +89,30 @@ public class MovieDetailActivity extends AppCompatActivity {
 
             if (intent.hasExtra(EXTRA_MOVIE)) {
                 Integer movieId = (Integer) intent.getSerializableExtra(EXTRA_MOVIE);
-                loadMovie(movieId);
+
+                if (intent.hasExtra(EXTRA_MOVIE_FAVORITE)) {
+                    isInFavoriteCollection = true;
+                    Movie favoriteMovie = getFavoriteMovie(movieId);
+                    loadFavoriteMovie(favoriteMovie);
+                } else {
+                    loadMovie(movieId);
+                }
             }
+
+            scrollView.fullScroll(ScrollView.FOCUS_UP);
+            scrollView.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    scrollView.fullScroll(ScrollView.FOCUS_UP);
+                }
+            }, 600);
         }
     }
 
     @Override
     public void onSaveInstanceState(Bundle outState) {
         outState.putParcelable(MOVIE_LOADED, movie);
+        outState.putBoolean(EXTRA_MOVIE_FAVORITE, isInFavoriteCollection);
         super.onSaveInstanceState(outState);
     }
 
@@ -92,13 +123,32 @@ public class MovieDetailActivity extends AppCompatActivity {
         startActivity(intent);
     }
 
+    public void markAsFavorite (View view) {
+        if (movie.getFavoriteFlag() == 0) {
+            movie.setFavoriteFlag(1);
+            favoriteStar.setImageResource(R.drawable.star_favorite);
+        } else {
+            movie.setFavoriteFlag(0);
+            favoriteStar.setImageResource(R.drawable.star_favorite_disable);
+        }
+        updateMovie();
+    }
+
     private void loadMovieInViews () {
         String posterPath = movie.getPosterPath();
         String posterUrl = getResources().getString(R.string.movie_db_base_url_poster) + posterPath;
         Picasso.with(this).load(posterUrl).into(poster);
 
+        if (isInFavoriteCollection) {
+            if (movie.getFavoriteFlag() == 1) {
+                favoriteStar.setImageResource(R.drawable.star_favorite);
+            } else {
+                favoriteStar.setImageResource(R.drawable.star_favorite_disable);
+            }
+        }
+
         originalTitle.setText(movie.getOriginalTitle());
-        releaseDate.setText(movie.getRealeseDate());
+        releaseDate.setText(movie.getReleaseDate());
         voteAverage.setText(movie.getVoteAverage());
         overview.setText(movie.getOverview());
 
@@ -125,7 +175,6 @@ public class MovieDetailActivity extends AppCompatActivity {
                 }
             }
         });
-
     }
 
     private void loadMovie(Integer movieId) {
@@ -142,6 +191,12 @@ public class MovieDetailActivity extends AppCompatActivity {
         new FetchMovieTask().execute(urlMovieDetails, urlMovieReviews, urlMovieTrailers);
     }
 
+    private void loadFavoriteMovie(Movie movie) {
+        showMovieView();
+        loadingIndicator.setVisibility(View.VISIBLE);
+        loadMovie(movie);
+    }
+
     private void showMovieView() {
         errorMessageDisplay.setVisibility(View.INVISIBLE);
         scrollView.setVisibility(View.VISIBLE);
@@ -151,7 +206,6 @@ public class MovieDetailActivity extends AppCompatActivity {
         scrollView.setVisibility(View.INVISIBLE);
         errorMessageDisplay.setVisibility(View.VISIBLE);
     }
-
 
     public class FetchMovieTask extends AsyncTask<String, Void, Movie> {
 
@@ -205,15 +259,184 @@ public class MovieDetailActivity extends AppCompatActivity {
 
         @Override
         protected void onPostExecute(Movie movieLoaded) {
-            loadingIndicator.setVisibility(View.INVISIBLE);
-
-            if (movieLoaded != null) {
-                showMovieView();
-                movie = movieLoaded;
-                loadMovieInViews();
-            } else {
-                showErrorMessage();
+            boolean isLoaded = loadMovie(movieLoaded);
+            boolean savingLocalCollection =  Boolean.valueOf(getResources().getString(R.string.enable_saving_local_collection));
+            if (isLoaded && savingLocalCollection) {
+                saveMovie();
             }
         }
+    }
+
+    private boolean loadMovie(Movie movieLoaded) {
+        loadingIndicator.setVisibility(View.INVISIBLE);
+
+        if (movieLoaded != null) {
+            showMovieView();
+            movie = movieLoaded;
+            loadMovieInViews();
+            return true;
+        } else {
+            showErrorMessage();
+        }
+        return false;
+    }
+
+    private void updateMovie() {
+
+        ContentValues cvMovie = new ContentValues();
+
+        cvMovie.put(LocalCollectionMoviesContract.LocalCollectionMoviesEntry.COLUMN_IS_FAVORITE, movie.getFavoriteFlag());
+
+        mDB.update(LocalCollectionMoviesContract.LocalCollectionMoviesEntry.TABLE_NAME,
+                cvMovie,
+                LocalCollectionMoviesContract.LocalCollectionMoviesReviewsEntry.COLUMN_MOVIE_ID + " = ?",
+                new String[] {String.valueOf(movie.getId())}
+        );
+    }
+
+    // This method is only for storing the favorite movies collection
+    private void saveMovie() {
+
+        ContentValues cvMovie = new ContentValues();
+
+        cvMovie.put(LocalCollectionMoviesContract.LocalCollectionMoviesEntry.COLUMN_MOVIE_ID, movie.getId());
+        cvMovie.put(LocalCollectionMoviesContract.LocalCollectionMoviesEntry.COLUMN_TITLE, movie.getOriginalTitle());
+        cvMovie.put(LocalCollectionMoviesContract.LocalCollectionMoviesEntry.COLUMN_OVERVIEW, movie.getOverview());
+        cvMovie.put(LocalCollectionMoviesContract.LocalCollectionMoviesEntry.COLUMN_POSTER_PATH, movie.getPosterPath());
+        cvMovie.put(LocalCollectionMoviesContract.LocalCollectionMoviesEntry.COLUMN_VOTE_AVERAGE, movie.getVoteAverage());
+        cvMovie.put(LocalCollectionMoviesContract.LocalCollectionMoviesEntry.COLUMN_RELEASE_DATE, movie.getReleaseDate());
+
+        mDB.insert(LocalCollectionMoviesContract.LocalCollectionMoviesEntry.TABLE_NAME, null, cvMovie);
+
+        if (movie.getReviews() != null && movie.getReviews().size() > 0) {
+            for (Review review : movie.getReviews()) {
+
+                ContentValues cvReview = new ContentValues();
+
+                cvReview.put(LocalCollectionMoviesContract.LocalCollectionMoviesReviewsEntry.COLUMN_REVIEW_ID, review.getId());
+                cvReview.put(LocalCollectionMoviesContract.LocalCollectionMoviesReviewsEntry.COLUMN_AUTHOR, review.getAuthor());
+                cvReview.put(LocalCollectionMoviesContract.LocalCollectionMoviesReviewsEntry.COLUMN_CONTENT, review.getContent());
+                cvReview.put(LocalCollectionMoviesContract.LocalCollectionMoviesReviewsEntry.COLUMN_URL, review.getUrl());
+                cvReview.put(LocalCollectionMoviesContract.LocalCollectionMoviesReviewsEntry.COLUMN_MOVIE_ID, movie.getId());
+
+                mDB.insert(LocalCollectionMoviesContract.LocalCollectionMoviesReviewsEntry.TABLE_NAME, null, cvReview);
+            }
+        }
+
+        if (movie.getTrailers() != null && movie.getTrailers().size() > 0) {
+            for (Trailer trailer : movie.getTrailers()) {
+
+                ContentValues cvTrailer = new ContentValues();
+
+                cvTrailer.put(LocalCollectionMoviesContract.LocalCollectionMoviesTrailersEntry.COLUMN_TRAILER_ID, trailer.getId());
+                cvTrailer.put(LocalCollectionMoviesContract.LocalCollectionMoviesTrailersEntry.COLUMN_ISO_639_1, trailer.getIso_639_1());
+                cvTrailer.put(LocalCollectionMoviesContract.LocalCollectionMoviesTrailersEntry.COLUMN_ISO_3166_1, trailer.getIso_3166_1());
+                cvTrailer.put(LocalCollectionMoviesContract.LocalCollectionMoviesTrailersEntry.COLUMN_KEY, trailer.getKey());
+                cvTrailer.put(LocalCollectionMoviesContract.LocalCollectionMoviesTrailersEntry.COLUMN_NAME, trailer.getName());
+                cvTrailer.put(LocalCollectionMoviesContract.LocalCollectionMoviesTrailersEntry.COLUMN_SITE, trailer.getSite());
+                cvTrailer.put(LocalCollectionMoviesContract.LocalCollectionMoviesTrailersEntry.COLUMN_SIZE, trailer.getSize());
+                cvTrailer.put(LocalCollectionMoviesContract.LocalCollectionMoviesTrailersEntry.COLUMN_TYPE, trailer.getType());
+                cvTrailer.put(LocalCollectionMoviesContract.LocalCollectionMoviesTrailersEntry.COLUMN_MOVIE_ID, movie.getId());
+
+                mDB.insert(LocalCollectionMoviesContract.LocalCollectionMoviesTrailersEntry.TABLE_NAME, null, cvTrailer);
+            }
+        }
+    }
+
+    private Movie getFavoriteMovie(int movieId) {
+
+        Movie movie = new Movie();
+
+        Cursor cursor = mDB.query(LocalCollectionMoviesContract.LocalCollectionMoviesEntry.TABLE_NAME,
+                null,
+                LocalCollectionMoviesContract.LocalCollectionMoviesEntry.COLUMN_MOVIE_ID + " = ?",
+                new String[] {String.valueOf(movieId)},
+                null,
+                null,
+                LocalCollectionMoviesContract.LocalCollectionMoviesEntry._ID
+        );
+
+        cursor.moveToFirst();
+
+        if (cursor.moveToFirst()) {
+            movie.setId(cursor.getInt(cursor.getColumnIndex(LocalCollectionMoviesContract.LocalCollectionMoviesEntry.COLUMN_MOVIE_ID)));
+            movie.setOriginalTitle(cursor.getString(cursor.getColumnIndex(LocalCollectionMoviesContract.LocalCollectionMoviesEntry.COLUMN_TITLE)));
+            movie.setPosterPath(cursor.getString(cursor.getColumnIndex(LocalCollectionMoviesContract.LocalCollectionMoviesEntry.COLUMN_POSTER_PATH)));
+            movie.setOverview(cursor.getString(cursor.getColumnIndex(LocalCollectionMoviesContract.LocalCollectionMoviesEntry.COLUMN_OVERVIEW)));
+            movie.setVoteAverage(cursor.getString(cursor.getColumnIndex(LocalCollectionMoviesContract.LocalCollectionMoviesEntry.COLUMN_VOTE_AVERAGE)));
+            movie.setReleaseDate(cursor.getString(cursor.getColumnIndex(LocalCollectionMoviesContract.LocalCollectionMoviesEntry.COLUMN_RELEASE_DATE)));
+            movie.setFavoriteFlag(cursor.getInt(cursor.getColumnIndex(LocalCollectionMoviesContract.LocalCollectionMoviesEntry.COLUMN_IS_FAVORITE)));
+        }
+
+        movie.setReviews(getFavoriteMovieReviews(movie.getId()));
+        movie.setTrailers(getFavoriteMovieTrailers(movie.getId()));
+
+        return movie;
+    }
+
+    private List<Review> getFavoriteMovieReviews(int movieId) {
+
+        List<Review> reviews = new ArrayList<>();
+
+        Cursor cursor = mDB.query(LocalCollectionMoviesContract.LocalCollectionMoviesReviewsEntry.TABLE_NAME,
+                null,
+                LocalCollectionMoviesContract.LocalCollectionMoviesReviewsEntry.COLUMN_MOVIE_ID + " = ?",
+                new String[] {String.valueOf(movieId)},
+                null,
+                null,
+                LocalCollectionMoviesContract.LocalCollectionMoviesReviewsEntry._ID
+        );
+
+        cursor.moveToFirst();
+
+        for (int i = 0; i < cursor.getCount(); i++) {
+            Review review = new Review();
+
+            review.setId(cursor.getString(cursor.getColumnIndex(LocalCollectionMoviesContract.LocalCollectionMoviesReviewsEntry.COLUMN_REVIEW_ID)));
+            review.setAuthor(cursor.getString(cursor.getColumnIndex(LocalCollectionMoviesContract.LocalCollectionMoviesReviewsEntry.COLUMN_AUTHOR)));
+            review.setContent(cursor.getString(cursor.getColumnIndex(LocalCollectionMoviesContract.LocalCollectionMoviesReviewsEntry.COLUMN_CONTENT)));
+            review.setUrl(cursor.getString(cursor.getColumnIndex(LocalCollectionMoviesContract.LocalCollectionMoviesReviewsEntry.COLUMN_URL)));
+
+            reviews.add(review);
+
+            cursor.moveToNext();
+        }
+
+        return reviews;
+    }
+
+    private List<Trailer> getFavoriteMovieTrailers(int movieId) {
+
+        List<Trailer> trailers = new ArrayList<>();
+
+        Cursor cursor = mDB.query(LocalCollectionMoviesContract.LocalCollectionMoviesTrailersEntry.TABLE_NAME,
+                null,
+                LocalCollectionMoviesContract.LocalCollectionMoviesTrailersEntry.COLUMN_MOVIE_ID + " = ?",
+                new String[] {String.valueOf(movieId)},
+                null,
+                null,
+                LocalCollectionMoviesContract.LocalCollectionMoviesTrailersEntry._ID
+        );
+
+        cursor.moveToFirst();
+
+        for (int i = 0; i < cursor.getCount(); i++) {
+            Trailer trailer = new Trailer();
+
+            trailer.setId(cursor.getString(cursor.getColumnIndex(LocalCollectionMoviesContract.LocalCollectionMoviesTrailersEntry.COLUMN_TRAILER_ID)));
+            trailer.setIso_639_1(cursor.getString(cursor.getColumnIndex(LocalCollectionMoviesContract.LocalCollectionMoviesTrailersEntry.COLUMN_ISO_639_1)));
+            trailer.setIso_3166_1(cursor.getString(cursor.getColumnIndex(LocalCollectionMoviesContract.LocalCollectionMoviesTrailersEntry.COLUMN_ISO_3166_1)));
+            trailer.setKey(cursor.getString(cursor.getColumnIndex(LocalCollectionMoviesContract.LocalCollectionMoviesTrailersEntry.COLUMN_KEY)));
+            trailer.setName(cursor.getString(cursor.getColumnIndex(LocalCollectionMoviesContract.LocalCollectionMoviesTrailersEntry.COLUMN_NAME)));
+            trailer.setSite(cursor.getString(cursor.getColumnIndex(LocalCollectionMoviesContract.LocalCollectionMoviesTrailersEntry.COLUMN_SITE)));
+            trailer.setSize(cursor.getInt(cursor.getColumnIndex(LocalCollectionMoviesContract.LocalCollectionMoviesTrailersEntry.COLUMN_SIZE)));
+            trailer.setType(cursor.getString(cursor.getColumnIndex(LocalCollectionMoviesContract.LocalCollectionMoviesTrailersEntry.COLUMN_TYPE)));
+
+            trailers.add(trailer);
+
+            cursor.moveToNext();
+        }
+
+        return trailers;
     }
 }

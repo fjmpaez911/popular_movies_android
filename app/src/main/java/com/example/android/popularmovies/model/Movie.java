@@ -13,7 +13,8 @@ public class Movie implements Parcelable {
     private String posterPath;
     private String overview;
     private String voteAverage;
-    private String realeseDate;
+    private String releaseDate;
+    private Integer favoriteFlag = 0;
     private List<Review> reviews;
     private List<Trailer> trailers;
 
@@ -26,22 +27,22 @@ public class Movie implements Parcelable {
         this.posterPath = posterPath;
     }
 
-    public Movie(Integer id, String originalTitle, String posterPath, String overview, String voteAverage, String realeseDate) {
+    public Movie(Integer id, String originalTitle, String posterPath, String overview, String voteAverage, String raleaseDate) {
         this.id = id;
         this.originalTitle = originalTitle;
         this.posterPath = posterPath;
         this.overview = overview;
         this.voteAverage = voteAverage;
-        this.realeseDate = realeseDate;
+        this.releaseDate = raleaseDate;
     }
 
-    public Movie(Integer id, String originalTitle, String posterPath, String overview, String voteAverage, String realeseDate, List<Review> reviews, List<Trailer> trailers) {
+    public Movie(Integer id, String originalTitle, String posterPath, String overview, String voteAverage, String raleaseDate, List<Review> reviews, List<Trailer> trailers) {
         this.id = id;
         this.originalTitle = originalTitle;
         this.posterPath = posterPath;
         this.overview = overview;
         this.voteAverage = voteAverage;
-        this.realeseDate = realeseDate;
+        this.releaseDate = raleaseDate;
         this.reviews = reviews;
         this.trailers = trailers;
     }
@@ -52,7 +53,8 @@ public class Movie implements Parcelable {
         this.posterPath = in.readString();
         this.overview = in.readString();
         this.voteAverage = in.readString();
-        this.realeseDate = in.readString();
+        this.releaseDate = in.readString();
+        this.favoriteFlag = in.readInt();
         in.readList(this.reviews, null);
         in.readList(this.trailers, null);
     }
@@ -60,66 +62,53 @@ public class Movie implements Parcelable {
     public Integer getId() {
         return id;
     }
-
     public void setId(Integer id) {
         this.id = id;
     }
-
     public String getOriginalTitle() {
         return originalTitle;
     }
-
     public void setOriginalTitle(String originalTitle) {
         this.originalTitle = originalTitle;
     }
-
-    public String getRealeseDate() {
-        return realeseDate;
+    public String getReleaseDate() {
+        return releaseDate;
     }
-
-    public void setRealeseDate(String realeseDate) {
-        this.realeseDate = realeseDate;
+    public void setReleaseDate(String releaseDate) {
+        this.releaseDate = releaseDate;
     }
-
     public String getVoteAverage() {
         return voteAverage;
     }
-
     public void setVoteAverage(String voteAverage) {
         this.voteAverage = voteAverage;
     }
-
     public String getOverview() {
         return overview;
     }
-
     public void setOverview(String overview) {
         this.overview = overview;
     }
-
     public String getPosterPath() {
         return posterPath;
     }
-
     public void setPosterPath(String posterPath) {
         this.posterPath = posterPath;
     }
-
     public List<Review> getReviews() {
         return reviews;
     }
-
     public void setReviews(List<Review> reviews) {
         this.reviews = reviews;
     }
-
     public List<Trailer> getTrailers() {
         return trailers;
     }
-
     public void setTrailers(List<Trailer> trailers) {
         this.trailers = trailers;
     }
+    public Integer getFavoriteFlag() { return favoriteFlag; }
+    public void setFavoriteFlag(Integer favoriteFlag) { this.favoriteFlag = favoriteFlag; }
 
     @Override
     public boolean equals(Object o) {
@@ -145,7 +134,8 @@ public class Movie implements Parcelable {
                 ", posterPath='" + posterPath + '\'' +
                 ", overview='" + overview + '\'' +
                 ", voteAverage='" + voteAverage + '\'' +
-                ", realeseDate='" + realeseDate + '\'' +
+                ", releaseDate='" + releaseDate + '\'' +
+                ", favoriteFlag='" + favoriteFlag + '\'' +
                 ", reviews=" + reviews +
                 ", trailers=" + trailers +
                 '}';
@@ -163,7 +153,8 @@ public class Movie implements Parcelable {
         dest.writeString(posterPath);
         dest.writeString(overview);
         dest.writeString(voteAverage);
-        dest.writeString(realeseDate);
+        dest.writeString(releaseDate);
+        dest.writeInt(favoriteFlag);
         dest.writeList(reviews);
         dest.writeList(trailers);
     }
