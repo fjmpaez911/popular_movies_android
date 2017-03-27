@@ -113,7 +113,7 @@
                 android:layout_height="wrap_content"
                 android:id="@+id/trailers"
                 android:padding="16dp"
-                android:columnWidth="100dp"
+                android:columnWidth="150dp"
                 android:numColumns="auto_fit"
                 android:stretchMode="columnWidth"
                 android:gravity="center"

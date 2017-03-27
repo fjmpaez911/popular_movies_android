@@ -7,6 +7,4 @@
     <string name="trailers_label_text">Trailers:</string>
     <string name="error_message">An error has occurred.</string>
 
-    <string name="enable_saving_local_collection">false</string>
-
 </resources>

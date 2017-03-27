@@ -17,11 +17,10 @@ import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.example.android.popularmovies.adapter.TrailerAdapter;
-import com.example.android.popularmovies.data.LocalCollectionMoviesContract;
-import com.example.android.popularmovies.data.LocalCollectionMoviesDbHelper;
+import com.example.android.popularmovies.data.MoviesContract;
+import com.example.android.popularmovies.data.MoviesDbHelper;
 import com.example.android.popularmovies.model.Movie;
 import com.example.android.popularmovies.model.Review;
 import com.example.android.popularmovies.model.Trailer;
@@ -53,19 +52,13 @@ public class MovieDetailActivity extends AppCompatActivity {
     private ImageView favoriteStar;
 
     private Movie movie;
-    private boolean isInFavoriteCollection = false;
 
     private TrailerAdapter trailerAdapter;
-
-    private SQLiteDatabase mDB;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_movie_detail);
-
-        LocalCollectionMoviesDbHelper dbHelper = new LocalCollectionMoviesDbHelper(this);
-        mDB = dbHelper.getWritableDatabase();
 
         errorMessageDisplay = (TextView) findViewById(R.id.tv_error_message_display_movie);
         loadingIndicator = (ProgressBar) findViewById(R.id.pb_loading_indicator_movie);
@@ -82,7 +75,6 @@ public class MovieDetailActivity extends AppCompatActivity {
 
         if (savedInstanceState != null && savedInstanceState.containsKey(MOVIE_LOADED)) {
             movie = savedInstanceState.getParcelable(MOVIE_LOADED);
-            isInFavoriteCollection = savedInstanceState.getBoolean(EXTRA_MOVIE_FAVORITE);
             showMovieView();
             loadMovieInViews();
         } else {
@@ -92,7 +84,6 @@ public class MovieDetailActivity extends AppCompatActivity {
                 Integer movieId = (Integer) intent.getSerializableExtra(EXTRA_MOVIE);
 
                 if (intent.hasExtra(EXTRA_MOVIE_FAVORITE)) {
-                    isInFavoriteCollection = true;
                     Movie favoriteMovie = getFavoriteMovie(movieId);
                     loadFavoriteMovie(favoriteMovie);
                 } else {
@@ -113,7 +104,6 @@ public class MovieDetailActivity extends AppCompatActivity {
     @Override
     public void onSaveInstanceState(Bundle outState) {
         outState.putParcelable(MOVIE_LOADED, movie);
-        outState.putBoolean(EXTRA_MOVIE_FAVORITE, isInFavoriteCollection);
         super.onSaveInstanceState(outState);
     }
 
@@ -128,11 +118,12 @@ public class MovieDetailActivity extends AppCompatActivity {
         if (movie.getFavoriteFlag() == 0) {
             movie.setFavoriteFlag(1);
             favoriteStar.setImageResource(R.drawable.star_favorite);
+            saveMovie();
         } else {
             movie.setFavoriteFlag(0);
             favoriteStar.setImageResource(R.drawable.star_favorite_disable);
+            deleteMovie();
         }
-        updateMovie();
     }
 
     private void loadMovieInViews () {
@@ -140,12 +131,10 @@ public class MovieDetailActivity extends AppCompatActivity {
         String posterUrl = getResources().getString(R.string.movie_db_base_url_poster) + posterPath;
         Picasso.with(this).load(posterUrl).into(poster);
 
-        if (isInFavoriteCollection) {
-            if (movie.getFavoriteFlag() == 1) {
-                favoriteStar.setImageResource(R.drawable.star_favorite);
-            } else {
-                favoriteStar.setImageResource(R.drawable.star_favorite_disable);
-            }
+        if (movie.getFavoriteFlag() == 1) {
+            favoriteStar.setImageResource(R.drawable.star_favorite);
+        } else {
+            favoriteStar.setImageResource(R.drawable.star_favorite_disable);
         }
 
         originalTitle.setText(movie.getOriginalTitle());
@@ -260,115 +249,113 @@ public class MovieDetailActivity extends AppCompatActivity {
 
         @Override
         protected void onPostExecute(Movie movieLoaded) {
-            boolean isLoaded = loadMovie(movieLoaded);
-            boolean savingLocalCollection =  Boolean.valueOf(getResources().getString(R.string.enable_saving_local_collection));
-            if (isLoaded && savingLocalCollection) {
-                saveMovie();
-            }
+            loadMovie(movieLoaded);
         }
     }
 
-    private boolean loadMovie(Movie movieLoaded) {
+    private void loadMovie(Movie movieLoaded) {
         loadingIndicator.setVisibility(View.INVISIBLE);
 
         if (movieLoaded != null) {
             showMovieView();
             movie = movieLoaded;
             loadMovieInViews();
-            return true;
         } else {
             showErrorMessage();
         }
-        return false;
     }
 
-    private void updateMovie() {
+    private void deleteMovie() {
 
-        ContentValues cvMovie = new ContentValues();
+        getContentResolver().delete(MoviesContract.MoviesEntry.CONTENT_URI,
+                MoviesContract.ReviewsEntry.COLUMN_MOVIE_ID + " = ?",
+                new String[] {String.valueOf(movie.getId())}
+        );
 
-        cvMovie.put(LocalCollectionMoviesContract.LocalCollectionMoviesEntry.COLUMN_IS_FAVORITE, movie.getFavoriteFlag());
+        getContentResolver().delete(MoviesContract.ReviewsEntry.CONTENT_URI,
+                MoviesContract.ReviewsEntry.COLUMN_MOVIE_ID + " = ?",
+                new String[] {String.valueOf(movie.getId())}
+        );
 
-        mDB.update(LocalCollectionMoviesContract.LocalCollectionMoviesEntry.TABLE_NAME,
-                cvMovie,
-                LocalCollectionMoviesContract.LocalCollectionMoviesReviewsEntry.COLUMN_MOVIE_ID + " = ?",
+        getContentResolver().delete(MoviesContract.TrailersEntry.CONTENT_URI,
+                MoviesContract.ReviewsEntry.COLUMN_MOVIE_ID + " = ?",
                 new String[] {String.valueOf(movie.getId())}
         );
     }
 
-    // This method is only for storing the favorite movies collection
     private void saveMovie() {
 
         ContentValues cvMovie = new ContentValues();
 
-        cvMovie.put(LocalCollectionMoviesContract.LocalCollectionMoviesEntry.COLUMN_MOVIE_ID, movie.getId());
-        cvMovie.put(LocalCollectionMoviesContract.LocalCollectionMoviesEntry.COLUMN_TITLE, movie.getOriginalTitle());
-        cvMovie.put(LocalCollectionMoviesContract.LocalCollectionMoviesEntry.COLUMN_OVERVIEW, movie.getOverview());
-        cvMovie.put(LocalCollectionMoviesContract.LocalCollectionMoviesEntry.COLUMN_POSTER_PATH, movie.getPosterPath());
-        cvMovie.put(LocalCollectionMoviesContract.LocalCollectionMoviesEntry.COLUMN_VOTE_AVERAGE, movie.getVoteAverage());
-        cvMovie.put(LocalCollectionMoviesContract.LocalCollectionMoviesEntry.COLUMN_RELEASE_DATE, movie.getReleaseDate());
+        cvMovie.put(MoviesContract.MoviesEntry.COLUMN_MOVIE_ID, movie.getId());
+        cvMovie.put(MoviesContract.MoviesEntry.COLUMN_TITLE, movie.getOriginalTitle());
+        cvMovie.put(MoviesContract.MoviesEntry.COLUMN_OVERVIEW, movie.getOverview());
+        cvMovie.put(MoviesContract.MoviesEntry.COLUMN_POSTER_PATH, movie.getPosterPath());
+        cvMovie.put(MoviesContract.MoviesEntry.COLUMN_VOTE_AVERAGE, movie.getVoteAverage());
+        cvMovie.put(MoviesContract.MoviesEntry.COLUMN_RELEASE_DATE, movie.getReleaseDate());
+        cvMovie.put(MoviesContract.MoviesEntry.COLUMN_IS_FAVORITE, 1);
 
-        mDB.insert(LocalCollectionMoviesContract.LocalCollectionMoviesEntry.TABLE_NAME, null, cvMovie);
+        Uri uri = getContentResolver().insert(MoviesContract.MoviesEntry.CONTENT_URI, cvMovie);
 
-        if (movie.getReviews() != null && movie.getReviews().size() > 0) {
-            for (Review review : movie.getReviews()) {
+        if (uri != null) {
 
-                ContentValues cvReview = new ContentValues();
+            if (movie.getReviews() != null && movie.getReviews().size() > 0) {
+                for (Review review : movie.getReviews()) {
 
-                cvReview.put(LocalCollectionMoviesContract.LocalCollectionMoviesReviewsEntry.COLUMN_REVIEW_ID, review.getId());
-                cvReview.put(LocalCollectionMoviesContract.LocalCollectionMoviesReviewsEntry.COLUMN_AUTHOR, review.getAuthor());
-                cvReview.put(LocalCollectionMoviesContract.LocalCollectionMoviesReviewsEntry.COLUMN_CONTENT, review.getContent());
-                cvReview.put(LocalCollectionMoviesContract.LocalCollectionMoviesReviewsEntry.COLUMN_URL, review.getUrl());
-                cvReview.put(LocalCollectionMoviesContract.LocalCollectionMoviesReviewsEntry.COLUMN_MOVIE_ID, movie.getId());
+                    ContentValues cvReview = new ContentValues();
 
-                mDB.insert(LocalCollectionMoviesContract.LocalCollectionMoviesReviewsEntry.TABLE_NAME, null, cvReview);
+                    cvReview.put(MoviesContract.ReviewsEntry.COLUMN_REVIEW_ID, review.getId());
+                    cvReview.put(MoviesContract.ReviewsEntry.COLUMN_AUTHOR, review.getAuthor());
+                    cvReview.put(MoviesContract.ReviewsEntry.COLUMN_CONTENT, review.getContent());
+                    cvReview.put(MoviesContract.ReviewsEntry.COLUMN_URL, review.getUrl());
+                    cvReview.put(MoviesContract.ReviewsEntry.COLUMN_MOVIE_ID, movie.getId());
+
+                    getContentResolver().insert(MoviesContract.ReviewsEntry.CONTENT_URI, cvReview);
+                }
+            }
+
+            if (movie.getTrailers() != null && movie.getTrailers().size() > 0) {
+                for (Trailer trailer : movie.getTrailers()) {
+
+                    ContentValues cvTrailer = new ContentValues();
+
+                    cvTrailer.put(MoviesContract.TrailersEntry.COLUMN_TRAILER_ID, trailer.getId());
+                    cvTrailer.put(MoviesContract.TrailersEntry.COLUMN_ISO_639_1, trailer.getIso_639_1());
+                    cvTrailer.put(MoviesContract.TrailersEntry.COLUMN_ISO_3166_1, trailer.getIso_3166_1());
+                    cvTrailer.put(MoviesContract.TrailersEntry.COLUMN_KEY, trailer.getKey());
+                    cvTrailer.put(MoviesContract.TrailersEntry.COLUMN_NAME, trailer.getName());
+                    cvTrailer.put(MoviesContract.TrailersEntry.COLUMN_SITE, trailer.getSite());
+                    cvTrailer.put(MoviesContract.TrailersEntry.COLUMN_SIZE, trailer.getSize());
+                    cvTrailer.put(MoviesContract.TrailersEntry.COLUMN_TYPE, trailer.getType());
+                    cvTrailer.put(MoviesContract.TrailersEntry.COLUMN_MOVIE_ID, movie.getId());
+
+                    getContentResolver().insert(MoviesContract.TrailersEntry.CONTENT_URI, cvTrailer);
+                }
             }
         }
-
-        if (movie.getTrailers() != null && movie.getTrailers().size() > 0) {
-            for (Trailer trailer : movie.getTrailers()) {
-
-                ContentValues cvTrailer = new ContentValues();
-
-                cvTrailer.put(LocalCollectionMoviesContract.LocalCollectionMoviesTrailersEntry.COLUMN_TRAILER_ID, trailer.getId());
-                cvTrailer.put(LocalCollectionMoviesContract.LocalCollectionMoviesTrailersEntry.COLUMN_ISO_639_1, trailer.getIso_639_1());
-                cvTrailer.put(LocalCollectionMoviesContract.LocalCollectionMoviesTrailersEntry.COLUMN_ISO_3166_1, trailer.getIso_3166_1());
-                cvTrailer.put(LocalCollectionMoviesContract.LocalCollectionMoviesTrailersEntry.COLUMN_KEY, trailer.getKey());
-                cvTrailer.put(LocalCollectionMoviesContract.LocalCollectionMoviesTrailersEntry.COLUMN_NAME, trailer.getName());
-                cvTrailer.put(LocalCollectionMoviesContract.LocalCollectionMoviesTrailersEntry.COLUMN_SITE, trailer.getSite());
-                cvTrailer.put(LocalCollectionMoviesContract.LocalCollectionMoviesTrailersEntry.COLUMN_SIZE, trailer.getSize());
-                cvTrailer.put(LocalCollectionMoviesContract.LocalCollectionMoviesTrailersEntry.COLUMN_TYPE, trailer.getType());
-                cvTrailer.put(LocalCollectionMoviesContract.LocalCollectionMoviesTrailersEntry.COLUMN_MOVIE_ID, movie.getId());
-
-                mDB.insert(LocalCollectionMoviesContract.LocalCollectionMoviesTrailersEntry.TABLE_NAME, null, cvTrailer);
-            }
-        }
-
-        Toast.makeText(this, "Movie saved in local collection!", Toast.LENGTH_LONG).show();
     }
 
     private Movie getFavoriteMovie(int movieId) {
 
         Movie movie = new Movie();
 
-        Cursor cursor = mDB.query(LocalCollectionMoviesContract.LocalCollectionMoviesEntry.TABLE_NAME,
+        Cursor cursor = getContentResolver().query(MoviesContract.MoviesEntry.CONTENT_URI,
                 null,
-                LocalCollectionMoviesContract.LocalCollectionMoviesEntry.COLUMN_MOVIE_ID + " = ?",
+                MoviesContract.MoviesEntry.COLUMN_MOVIE_ID + " = ?",
                 new String[] {String.valueOf(movieId)},
-                null,
-                null,
-                LocalCollectionMoviesContract.LocalCollectionMoviesEntry._ID
+                MoviesContract.MoviesEntry._ID
         );
 
         cursor.moveToFirst();
 
         if (cursor.moveToFirst()) {
-            movie.setId(cursor.getInt(cursor.getColumnIndex(LocalCollectionMoviesContract.LocalCollectionMoviesEntry.COLUMN_MOVIE_ID)));
-            movie.setOriginalTitle(cursor.getString(cursor.getColumnIndex(LocalCollectionMoviesContract.LocalCollectionMoviesEntry.COLUMN_TITLE)));
-            movie.setPosterPath(cursor.getString(cursor.getColumnIndex(LocalCollectionMoviesContract.LocalCollectionMoviesEntry.COLUMN_POSTER_PATH)));
-            movie.setOverview(cursor.getString(cursor.getColumnIndex(LocalCollectionMoviesContract.LocalCollectionMoviesEntry.COLUMN_OVERVIEW)));
-            movie.setVoteAverage(cursor.getString(cursor.getColumnIndex(LocalCollectionMoviesContract.LocalCollectionMoviesEntry.COLUMN_VOTE_AVERAGE)));
-            movie.setReleaseDate(cursor.getString(cursor.getColumnIndex(LocalCollectionMoviesContract.LocalCollectionMoviesEntry.COLUMN_RELEASE_DATE)));
-            movie.setFavoriteFlag(cursor.getInt(cursor.getColumnIndex(LocalCollectionMoviesContract.LocalCollectionMoviesEntry.COLUMN_IS_FAVORITE)));
+            movie.setId(cursor.getInt(cursor.getColumnIndex(MoviesContract.MoviesEntry.COLUMN_MOVIE_ID)));
+            movie.setOriginalTitle(cursor.getString(cursor.getColumnIndex(MoviesContract.MoviesEntry.COLUMN_TITLE)));
+            movie.setPosterPath(cursor.getString(cursor.getColumnIndex(MoviesContract.MoviesEntry.COLUMN_POSTER_PATH)));
+            movie.setOverview(cursor.getString(cursor.getColumnIndex(MoviesContract.MoviesEntry.COLUMN_OVERVIEW)));
+            movie.setVoteAverage(cursor.getString(cursor.getColumnIndex(MoviesContract.MoviesEntry.COLUMN_VOTE_AVERAGE)));
+            movie.setReleaseDate(cursor.getString(cursor.getColumnIndex(MoviesContract.MoviesEntry.COLUMN_RELEASE_DATE)));
+            movie.setFavoriteFlag(cursor.getInt(cursor.getColumnIndex(MoviesContract.MoviesEntry.COLUMN_IS_FAVORITE)));
         }
 
         movie.setReviews(getFavoriteMovieReviews(movie.getId()));
@@ -381,13 +368,11 @@ public class MovieDetailActivity extends AppCompatActivity {
 
         List<Review> reviews = new ArrayList<>();
 
-        Cursor cursor = mDB.query(LocalCollectionMoviesContract.LocalCollectionMoviesReviewsEntry.TABLE_NAME,
+        Cursor cursor = getContentResolver().query(MoviesContract.ReviewsEntry.CONTENT_URI,
                 null,
-                LocalCollectionMoviesContract.LocalCollectionMoviesReviewsEntry.COLUMN_MOVIE_ID + " = ?",
+                MoviesContract.ReviewsEntry.COLUMN_MOVIE_ID + " = ?",
                 new String[] {String.valueOf(movieId)},
-                null,
-                null,
-                LocalCollectionMoviesContract.LocalCollectionMoviesReviewsEntry._ID
+                MoviesContract.ReviewsEntry._ID
         );
 
         cursor.moveToFirst();
@@ -395,10 +380,10 @@ public class MovieDetailActivity extends AppCompatActivity {
         for (int i = 0; i < cursor.getCount(); i++) {
             Review review = new Review();
 
-            review.setId(cursor.getString(cursor.getColumnIndex(LocalCollectionMoviesContract.LocalCollectionMoviesReviewsEntry.COLUMN_REVIEW_ID)));
-            review.setAuthor(cursor.getString(cursor.getColumnIndex(LocalCollectionMoviesContract.LocalCollectionMoviesReviewsEntry.COLUMN_AUTHOR)));
-            review.setContent(cursor.getString(cursor.getColumnIndex(LocalCollectionMoviesContract.LocalCollectionMoviesReviewsEntry.COLUMN_CONTENT)));
-            review.setUrl(cursor.getString(cursor.getColumnIndex(LocalCollectionMoviesContract.LocalCollectionMoviesReviewsEntry.COLUMN_URL)));
+            review.setId(cursor.getString(cursor.getColumnIndex(MoviesContract.ReviewsEntry.COLUMN_REVIEW_ID)));
+            review.setAuthor(cursor.getString(cursor.getColumnIndex(MoviesContract.ReviewsEntry.COLUMN_AUTHOR)));
+            review.setContent(cursor.getString(cursor.getColumnIndex(MoviesContract.ReviewsEntry.COLUMN_CONTENT)));
+            review.setUrl(cursor.getString(cursor.getColumnIndex(MoviesContract.ReviewsEntry.COLUMN_URL)));
 
             reviews.add(review);
 
@@ -412,13 +397,11 @@ public class MovieDetailActivity extends AppCompatActivity {
 
         List<Trailer> trailers = new ArrayList<>();
 
-        Cursor cursor = mDB.query(LocalCollectionMoviesContract.LocalCollectionMoviesTrailersEntry.TABLE_NAME,
+        Cursor cursor = getContentResolver().query(MoviesContract.TrailersEntry.CONTENT_URI,
                 null,
-                LocalCollectionMoviesContract.LocalCollectionMoviesTrailersEntry.COLUMN_MOVIE_ID + " = ?",
+                MoviesContract.TrailersEntry.COLUMN_MOVIE_ID + " = ?",
                 new String[] {String.valueOf(movieId)},
-                null,
-                null,
-                LocalCollectionMoviesContract.LocalCollectionMoviesTrailersEntry._ID
+                MoviesContract.TrailersEntry._ID
         );
 
         cursor.moveToFirst();
@@ -426,14 +409,14 @@ public class MovieDetailActivity extends AppCompatActivity {
         for (int i = 0; i < cursor.getCount(); i++) {
             Trailer trailer = new Trailer();
 
-            trailer.setId(cursor.getString(cursor.getColumnIndex(LocalCollectionMoviesContract.LocalCollectionMoviesTrailersEntry.COLUMN_TRAILER_ID)));
-            trailer.setIso_639_1(cursor.getString(cursor.getColumnIndex(LocalCollectionMoviesContract.LocalCollectionMoviesTrailersEntry.COLUMN_ISO_639_1)));
-            trailer.setIso_3166_1(cursor.getString(cursor.getColumnIndex(LocalCollectionMoviesContract.LocalCollectionMoviesTrailersEntry.COLUMN_ISO_3166_1)));
-            trailer.setKey(cursor.getString(cursor.getColumnIndex(LocalCollectionMoviesContract.LocalCollectionMoviesTrailersEntry.COLUMN_KEY)));
-            trailer.setName(cursor.getString(cursor.getColumnIndex(LocalCollectionMoviesContract.LocalCollectionMoviesTrailersEntry.COLUMN_NAME)));
-            trailer.setSite(cursor.getString(cursor.getColumnIndex(LocalCollectionMoviesContract.LocalCollectionMoviesTrailersEntry.COLUMN_SITE)));
-            trailer.setSize(cursor.getInt(cursor.getColumnIndex(LocalCollectionMoviesContract.LocalCollectionMoviesTrailersEntry.COLUMN_SIZE)));
-            trailer.setType(cursor.getString(cursor.getColumnIndex(LocalCollectionMoviesContract.LocalCollectionMoviesTrailersEntry.COLUMN_TYPE)));
+            trailer.setId(cursor.getString(cursor.getColumnIndex(MoviesContract.TrailersEntry.COLUMN_TRAILER_ID)));
+            trailer.setIso_639_1(cursor.getString(cursor.getColumnIndex(MoviesContract.TrailersEntry.COLUMN_ISO_639_1)));
+            trailer.setIso_3166_1(cursor.getString(cursor.getColumnIndex(MoviesContract.TrailersEntry.COLUMN_ISO_3166_1)));
+            trailer.setKey(cursor.getString(cursor.getColumnIndex(MoviesContract.TrailersEntry.COLUMN_KEY)));
+            trailer.setName(cursor.getString(cursor.getColumnIndex(MoviesContract.TrailersEntry.COLUMN_NAME)));
+            trailer.setSite(cursor.getString(cursor.getColumnIndex(MoviesContract.TrailersEntry.COLUMN_SITE)));
+            trailer.setSize(cursor.getInt(cursor.getColumnIndex(MoviesContract.TrailersEntry.COLUMN_SIZE)));
+            trailer.setType(cursor.getString(cursor.getColumnIndex(MoviesContract.TrailersEntry.COLUMN_TYPE)));
 
             trailers.add(trailer);
 

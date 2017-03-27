@@ -18,6 +18,12 @@
         </activity>
         <activity android:name=".MovieDetailActivity"></activity>
         <activity android:name=".ReviewsActivity"></activity>
+        
+        <provider
+            android:authorities="com.example.android.popularmovies"
+            android:name="com.example.android.popularmovies.data.MoviesContentProvider"
+            android:exported="false"/>
+
     </application>
 
 </manifest>

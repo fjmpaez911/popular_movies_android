@@ -19,8 +19,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.android.popularmovies.adapter.MovieAdapter;
-import com.example.android.popularmovies.data.LocalCollectionMoviesContract;
-import com.example.android.popularmovies.data.LocalCollectionMoviesDbHelper;
+import com.example.android.popularmovies.data.MoviesContract;
+import com.example.android.popularmovies.data.MoviesDbHelper;
 import com.example.android.popularmovies.model.Movie;
 import com.example.android.popularmovies.util.MoviesParser;
 import com.example.android.popularmovies.util.NetworkUtils;
@@ -51,7 +51,7 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        LocalCollectionMoviesDbHelper dbHelper = new LocalCollectionMoviesDbHelper(this);
+        MoviesDbHelper dbHelper = new MoviesDbHelper(this);
         mDB = dbHelper.getWritableDatabase();
 
         recyclerView = (RecyclerView) findViewById(R.id.recyclerview_movies);
@@ -86,6 +86,18 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
         outState.putParcelableArrayList(MOVIES_LOADED, (ArrayList<? extends Parcelable>) moviesLoaded);
         outState.putBoolean(MOVIES_FAVORITES, favorites);
         super.onSaveInstanceState(outState);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        if (favorites) {
+            movieAdapter.setMovies(null);
+            moviesLoaded = null;
+            loadMoviesLocalCollection();
+        }
+
     }
 
     @Override
@@ -236,13 +248,11 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
 
         List<Movie> movies = new ArrayList<>();
 
-        Cursor cursor = mDB.query(LocalCollectionMoviesContract.LocalCollectionMoviesEntry.TABLE_NAME,
+        Cursor cursor = getContentResolver().query(MoviesContract.MoviesEntry.CONTENT_URI,
                 null,
                 null,
                 null,
-                null,
-                null,
-                LocalCollectionMoviesContract.LocalCollectionMoviesEntry._ID
+                MoviesContract.MoviesEntry._ID
         );
 
         cursor.moveToFirst();
@@ -250,12 +260,12 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
         for (int i = 0; i < cursor.getCount(); i++) {
             Movie movie = new Movie();
 
-            movie.setId(cursor.getInt(cursor.getColumnIndex(LocalCollectionMoviesContract.LocalCollectionMoviesEntry.COLUMN_MOVIE_ID)));
-            movie.setOriginalTitle(cursor.getString(cursor.getColumnIndex(LocalCollectionMoviesContract.LocalCollectionMoviesEntry.COLUMN_TITLE)));
-            movie.setPosterPath(cursor.getString(cursor.getColumnIndex(LocalCollectionMoviesContract.LocalCollectionMoviesEntry.COLUMN_POSTER_PATH)));
-            movie.setOverview(cursor.getString(cursor.getColumnIndex(LocalCollectionMoviesContract.LocalCollectionMoviesEntry.COLUMN_OVERVIEW)));
-            movie.setVoteAverage(cursor.getString(cursor.getColumnIndex(LocalCollectionMoviesContract.LocalCollectionMoviesEntry.COLUMN_VOTE_AVERAGE)));
-            movie.setReleaseDate(cursor.getString(cursor.getColumnIndex(LocalCollectionMoviesContract.LocalCollectionMoviesEntry.COLUMN_RELEASE_DATE)));
+            movie.setId(cursor.getInt(cursor.getColumnIndex(MoviesContract.MoviesEntry.COLUMN_MOVIE_ID)));
+            movie.setOriginalTitle(cursor.getString(cursor.getColumnIndex(MoviesContract.MoviesEntry.COLUMN_TITLE)));
+            movie.setPosterPath(cursor.getString(cursor.getColumnIndex(MoviesContract.MoviesEntry.COLUMN_POSTER_PATH)));
+            movie.setOverview(cursor.getString(cursor.getColumnIndex(MoviesContract.MoviesEntry.COLUMN_OVERVIEW)));
+            movie.setVoteAverage(cursor.getString(cursor.getColumnIndex(MoviesContract.MoviesEntry.COLUMN_VOTE_AVERAGE)));
+            movie.setReleaseDate(cursor.getString(cursor.getColumnIndex(MoviesContract.MoviesEntry.COLUMN_RELEASE_DATE)));
 
             movies.add(movie);
 
